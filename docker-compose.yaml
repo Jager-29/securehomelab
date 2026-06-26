@@ -1,4 +1,15 @@
-version: '3.8'
+# =============================================================================
+#  Secure & Monitored Homelab - Stack Docker Compose
+# -----------------------------------------------------------------------------
+#  Segmentation reseau :
+#    - frontend_net  : exposition publique (reverse proxy)
+#    - backend_net   : services applicatifs + bases de donnees
+#    - monitoring_net : metriques et supervision
+#
+#  Note : la cle "version" a ete retiree (obsolete et ignoree par Compose V2).
+#  Astuce reproductibilite : remplacer les tags "latest" par des versions
+#  figees (ex: grafana/grafana:11.4.0) pour des deploiements deterministes.
+# =============================================================================
 
 networks:
   frontend_net:
@@ -8,16 +19,24 @@ networks:
   monitoring_net:
     driver: bridge
 
+volumes:
+  prometheus_data:
+  grafana_data:
+  uptime-kuma:
+
 services:
-  # --- REVERSE PROXY ---
+
+  # ===========================================================================
+  #  REVERSE PROXY & SSL
+  # ===========================================================================
   nginx-proxy-manager:
-    image: 'jc21/nginx-proxy-manager:latest'
+    image: jc21/nginx-proxy-manager:latest
     container_name: nginx-proxy-manager
     restart: unless-stopped
     ports:
-      - '80:80'
-      - '443:443'
-      - '81:81'
+      - "80:80"
+      - "443:443"
+      - "81:81"
     environment:
       DB_MYSQL_HOST: "db-npm"
       DB_MYSQL_PORT: 3306
@@ -34,9 +53,8 @@ services:
       - frontend_net
       - backend_net
 
-  # --- DATABASE (NPM) ---
   db-npm:
-    image: 'jc21/mariadb-aria:latest'
+    image: jc21/mariadb-aria:latest
     container_name: db-npm
     restart: unless-stopped
     environment:
@@ -50,9 +68,11 @@ services:
     networks:
       - backend_net
 
-  # --- SECURITY (CrowdSec) ---
+  # ===========================================================================
+  #  SECURITE (IPS/IDS) & DEFENSE ACTIVE
+  # ===========================================================================
   crowdsec:
-    image: crowdsecurity/crowdsec
+    image: crowdsecurity/crowdsec:latest
     container_name: crowdsec
     restart: always
     environment:
@@ -68,7 +88,6 @@ services:
       - backend_net
       - monitoring_net
 
-  # --- HONEYPOT (Cowrie) ---
   cowrie:
     image: cowrie/cowrie:latest
     container_name: cowrie
@@ -81,7 +100,9 @@ services:
     networks:
       - backend_net
 
-  # --- BI DASHBOARD (Metabase) ---
+  # ===========================================================================
+  #  BUSINESS INTELLIGENCE (Threat Intel)
+  # ===========================================================================
   metabase:
     image: metabase/metabase:latest
     container_name: metabase
@@ -97,7 +118,9 @@ services:
     networks:
       - backend_net
 
-  # --- BACKUP (Duplicati) ---
+  # ===========================================================================
+  #  SAUVEGARDE & RESILIENCE (3-2-1)
+  # ===========================================================================
   duplicati:
     image: duplicati/duplicati:latest
     container_name: duplicati
@@ -114,9 +137,11 @@ services:
     networks:
       - backend_net
 
-  # --- MONITORING ---
+  # ===========================================================================
+  #  MONITORING & OBSERVABILITE
+  # ===========================================================================
   prometheus:
-    image: prom/prometheus
+    image: prom/prometheus:latest
     container_name: prometheus
     restart: unless-stopped
     volumes:
@@ -126,11 +151,11 @@ services:
       - monitoring_net
 
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:latest
     container_name: grafana
     restart: unless-stopped
     ports:
-      - '3000:3000'
+      - "3000:3000"
     environment:
       GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_PASSWORD}"
       TZ: "${TIMEZONE}"
@@ -155,18 +180,28 @@ services:
     networks:
       - monitoring_net
 
+  # Ajout pour coherence avec le README (metriques par conteneur scrapees
+  # par Prometheus). A confirmer / retirer si non utilise.
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - monitoring_net
+
   uptime-kuma:
     image: louislam/uptime-kuma:1
     container_name: uptime-kuma
     restart: always
     ports:
-      - '3001:3001'
+      - "3001:3001"
     volumes:
       - uptime-kuma:/app/data
     networks:
       - monitoring_net
-
-volumes:
-  prometheus_data:
-  grafana_data:
-  uptime-kuma:
