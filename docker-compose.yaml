@@ -6,7 +6,7 @@
 #    - backend_net   : services applicatifs + bases de donnees
 #    - monitoring_net : metriques et supervision
 #
-#  Note : la cle "version" a ete retiree (obsolete et ignoree par Compose V2).
+#  Note : la cle "version" a ete retiree.
 #  Astuce reproductibilite : remplacer les tags "latest" par des versions
 #  figees (ex: grafana/grafana:11.4.0) pour des deploiements deterministes.
 # =============================================================================
@@ -180,8 +180,6 @@ services:
     networks:
       - monitoring_net
 
-  # Ajout pour coherence avec le README (metriques par conteneur scrapees
-  # par Prometheus). A confirmer / retirer si non utilise.
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
