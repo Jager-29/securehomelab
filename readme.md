@@ -16,6 +16,7 @@ Ce projet documente la mise en place d'une infrastructure de homelab auto-héber
 | Conteneurisation | Docker Engine & Docker Compose | Déploiement unifié et reproductible |
 | Orchestration | Portainer CE | Gestion graphique des stacks |
 | Reverse proxy & SSL | Nginx Proxy Manager | Gestion automatique des certificats Let's Encrypt |
+| Sécurité hôte (HIPS) | SysWarden | Défense réseau L2/L3/L4 au niveau du noyau — [repo dédié](https://github.com/Jager-29/syswarden-homelab) |
 | Sécurité défensive (IPS/IDS) | CrowdSec | Agent d'analyse + bouncer pare-feu `nftables` |
 | Défense active (honeypot) | Cowrie | Pot de miel SSH/Telnet haute interaction |
 | Monitoring technique | Prometheus, Grafana, cAdvisor, Node Exporter | Métriques système et conteneurs |
@@ -27,6 +28,8 @@ Ce projet documente la mise en place d'une infrastructure de homelab auto-héber
 ## Focus sécurité et défense active
 
 La sécurité est le cœur de cette infrastructure, qui passe d'une posture passive à une défense proactive.
+
+- **Défense réseau bas niveau (SysWarden)** : une couche HIPS opère directement sur l'hôte Debian, en dessous de Docker. Elle gère le filtrage L2/L3 au niveau de la carte réseau (GeoIP, ASN, blocklists), la purification TCP stateful et les jails Fail2ban pour les services système. Détails dans le [repo dédié](https://github.com/Jager-29/syswarden-homelab).
 
 - **Analyse comportementale** : CrowdSec analyse en temps réel les logs de Nginx Proxy Manager et du système pour détecter les patterns d'attaques connus.
 - **Honeypot SSH (Cowrie)** : un leurre est déployé sur un port secondaire (2222, redirigé depuis l'extérieur). Il simule un serveur vulnérable pour attirer les bots, enregistrer leurs commandes et détourner les attaques brute-force du véritable service SSH.
